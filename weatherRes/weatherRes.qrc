@@ -44,5 +44,23 @@
         <file>type/ZhongDaoDaYu.png</file>
         <file>type/ZhongXue.png</file>
         <file>type/ZhongYu.png</file>
+        <file>type2/baoyu.png</file>
+        <file>type2/chaoduoyun.png</file>
+        <file>type2/dayu.png</file>
+        <file>type2/duoyun.png</file>
+        <file>type2/duoyunye.png</file>
+        <file>type2/duoyunye2.png</file>
+        <file>type2/feng.png</file>
+        <file>type2/lei.png</file>
+        <file>type2/leizhenyu2.png</file>
+        <file>type2/lzy.png</file>
+        <file>type2/qing.png</file>
+        <file>type2/qingye.png</file>
+        <file>type2/riluo.png</file>
+        <file>type2/wendu.png</file>
+        <file>type2/xiaoyu.png</file>
+        <file>type2/xing.png</file>
+        <file>type2/xue.png</file>
+        <file>type2/zhongyu.png</file>
     </qresource>
 </RCC>

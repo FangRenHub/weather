@@ -6,6 +6,11 @@
 #include <QDebug>
 #include <QAction>
 #include <QMenu>
+#include <QGraphicsDropShadowEffect>
+#include <QPixmap>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QMessageBox>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -25,8 +30,20 @@ private:
     QMenu *rightMenu;
     QAction *exitAct;
 
+    QPoint mOffset; // 挪动窗口移动时，鼠标的偏移
+
+private slots:
+    void onReplied(QNetworkReply *reply);
+
 protected:
     void contextMenuEvent(QContextMenuEvent *event);
+
+    void mousePressEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
+
+    void getWeatherInfo(QString cityCode);
+
+    QNetworkAccessManager *myNetAccessManager;
 
 };
 #endif // MAINWINDOW_H

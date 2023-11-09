@@ -1,0 +1,4 @@
+#ifndef WEATHERDATE_H
+#define WEATHERDATE_H
+
+#endif // WEATHERDATE_H
