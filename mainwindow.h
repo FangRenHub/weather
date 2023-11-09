@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QContextMenuEvent>
 #include <QDebug>
+#include <QAction>
+#include <QMenu>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -19,6 +21,9 @@ public:
 
 private:
     Ui::MainWindow *ui;
+
+    QMenu *rightMenu;
+    QAction *exitAct;
 
 protected:
     void contextMenuEvent(QContextMenuEvent *event);
