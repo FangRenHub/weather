@@ -14,7 +14,7 @@ SOURCES += \
 
 HEADERS += \
     mainwindow.h \
-    weatherDate.h
+    weatherdate.h
 
 FORMS += \
     mainwindow.ui

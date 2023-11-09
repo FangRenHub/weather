@@ -11,6 +11,11 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QMessageBox>
+#include "weatherdate.h"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -44,6 +49,11 @@ protected:
     void getWeatherInfo(QString cityCode);
 
     QNetworkAccessManager *myNetAccessManager;
+
+    void parseJson(QByteArray& jsonByteArray);
+
+    Today mToday;
+    Forecast mForecast[6];
 
 };
 #endif // MAINWINDOW_H
