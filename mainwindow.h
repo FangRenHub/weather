@@ -11,11 +11,13 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QMessageBox>
-#include "weatherdate.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonValue>
+
+#include "weatherdate.h"
+#include "weathertools.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -37,8 +39,17 @@ private:
 
     QPoint mOffset; // 挪动窗口移动时，鼠标的偏移
 
+    QList<QLabel*> weekList;
+
+    QList<QLabel*> typeList;
+    QList<QLabel*> typeIconList;
+
+    QMap<QString, QString> typeMap;
+
 private slots:
     void onReplied(QNetworkReply *reply);
+
+    void on_searchBtn_clicked();
 
 protected:
     void contextMenuEvent(QContextMenuEvent *event);
@@ -52,8 +63,12 @@ protected:
 
     void parseJson(QByteArray& jsonByteArray);
 
+    void updateUi();
+
+    void keyPressEvent(QKeyEvent * event);
+
     Today mToday;
-    Forecast mForecast[6];
+    Forecast mForecast[8];
 
 };
 #endif // MAINWINDOW_H

@@ -7,16 +7,14 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    //无边框透明
     setWindowFlag(Qt::FramelessWindowHint);
     this->setAttribute(Qt::WA_TranslucentBackground);
+    //子窗阴影
     QGraphicsDropShadowEffect *shadow_effect = new QGraphicsDropShadowEffect(this);
     ui->ChildWidget->setGraphicsEffect(shadow_effect);
 
     ui->cityEdit->setPlaceholderText("查找城市");
-    //天气图标
-//    QPixmap waetMap(":/type2/riluo.png");
-//    ui->weatLabel->setAlignment(Qt::AlignCenter);
-//    ui->weatLabel->setPixmap(waetMap.scaled(ui->weatLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
 
     //右键菜单
     rightMenu = new QMenu(this);
@@ -30,11 +28,52 @@ MainWindow::MainWindow(QWidget *parent)
        qApp->exit();
     });
 
+    //把label装入数组
+    weekList << ui->weekLab0 << ui->weekLab1 << ui->weekLab2 << ui->weekLab3 << ui->weekLab4 << ui->weekLab5 << ui->weekLab6;
+    typeList << ui->typeLab0 << ui->typeLab1 << ui->typeLab2 << ui->typeLab3 << ui->typeLab4 << ui->typeLab5 << ui->typeLab6;
+    typeIconList << ui->foreIcon0 << ui->foreIcon1 << ui->foreIcon2 << ui->foreIcon3 << ui->foreIcon4 << ui->foreIcon5 << ui->foreIcon6;
+
+    //装入icon地址
+    typeMap.insert("暴雪",":/type2/xue.png");
+    typeMap.insert("暴雨",":/type2/dayu.png");
+    typeMap.insert("暴雨到大暴雨",":/type2/baoyu.png");
+    typeMap.insert("大暴雨",":/type2/baoyu.png");
+    typeMap.insert("大暴雨到特大暴雨",":/type2/baoyu.png");
+    typeMap.insert("大到暴雪",":/type2/xue.png");
+    typeMap.insert("大雪",":/type2/xue.png");
+    typeMap.insert("大雨",":/type2/zhongyu.png");
+    typeMap.insert("冻雨",":/type2/xue.png");
+    typeMap.insert("多云",":/type2/duoyun.png");
+    typeMap.insert("浮尘",":/type2/duoyun.png");
+    typeMap.insert("雷阵雨",":/type2/lzy.png");
+    typeMap.insert("雷阵雨伴有冰雹",":/type2/lzy.png");
+    typeMap.insert("霾",":/type2/feng.png");
+    typeMap.insert("强沙尘暴",":/type2/feng.png");
+    typeMap.insert("晴",":/type2/qing.png");
+    typeMap.insert("沙尘暴",":/type2/feng.png");
+    typeMap.insert("特大暴雨",":/type2/baoyu.png");
+    typeMap.insert("雾",":/type2/feng.png");
+    typeMap.insert("小到中雪",":/type2/xue.png");
+    typeMap.insert("小到中雨",":/type2/zhongyu.png");
+    typeMap.insert("小雪",":/type2/xue.png");
+    typeMap.insert("小雨",":/type2/xiaoyu.png");
+    typeMap.insert("雪",":/type2/xue.png");
+    typeMap.insert("扬沙",":/type2/feng.png");
+    typeMap.insert("阴",":/type2/chaoduoyun.png");
+    typeMap.insert("雨",":/type2/xiaoyu.png");
+    typeMap.insert("雨夹雪",":/type2/xiaoyu.png");
+    typeMap.insert("阵雪",":/type2/xue.png");
+    typeMap.insert("阵雨",":/type2/xiaoyu.png");
+    typeMap.insert("小到大雨",":/type2/dayu.png");
+    typeMap.insert("小到大雪",":/type2/xue.png");
+    typeMap.insert("中雪",":/type2/xue.png");
+    typeMap.insert("中雨",":/type2/zhongyu.png");
+
     //创建网络通道管理者
     myNetAccessManager = new QNetworkAccessManager(this);
     connect(myNetAccessManager, &QNetworkAccessManager::finished, this, &MainWindow::onReplied);
-
-    getWeatherInfo("101010100");
+    //getWeatherInfo("101010100"); //101010100北京编码
+    getWeatherInfo(WeatherTools::getCityCode("三亚"));
 }
 
 MainWindow::~MainWindow()
@@ -82,12 +121,17 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
 
 void MainWindow::getWeatherInfo(QString cityCode)
 {
+    if(cityCode.isEmpty()){
+        QMessageBox::warning(this,"获取失败","请检查输入城市是否正确", QMessageBox::Ok);
+        return;
+    }
     QUrl url("http://t.weather.itboy.net/api/weather/city/" + cityCode);
     myNetAccessManager->get(QNetworkRequest(url));
 }
 
 void MainWindow::parseJson(QByteArray &jsonByteArray)
 {
+    this->setCursor(Qt::WaitCursor);
     QJsonParseError err;
     QJsonDocument jDoc = QJsonDocument::fromJson(jsonByteArray, &err);
     if(err.error != QJsonParseError::NoError){
@@ -124,8 +168,8 @@ void MainWindow::parseJson(QByteArray &jsonByteArray)
 
     //解析forecast
     QJsonArray forecastArr = objData.value("forecast").toArray();
-    for(int i = 1; i <= 5; i++){
-        QJsonObject objForecast = forecastArr[i].toObject();
+    for(int i = 1; i <= 7; i++){
+        QJsonObject objForecast = forecastArr[i - 1].toObject();
 
         mForecast[i].week = objForecast.value("week").toString();
         mForecast[i].date = objForecast.value("ymd").toString();
@@ -141,7 +185,7 @@ void MainWindow::parseJson(QByteArray &jsonByteArray)
         mForecast[i].low = s.toInt();
 
         mForecast[i].fx = objForecast.value("fx").toString();
-        mForecast[i].fx = objForecast.value("fl").toString();
+        mForecast[i].fl = objForecast.value("fl").toString();
 
         mForecast[i].aqi = objForecast.value("fx").toDouble();
 
@@ -160,5 +204,46 @@ void MainWindow::parseJson(QByteArray &jsonByteArray)
     mToday.fl = mForecast[1].fl;
     mToday.high = mForecast[1].high;
     mToday.low = mForecast[1].low;
+    updateUi();
 }
 
+void MainWindow::updateUi()
+{
+    QString iconStr;
+    ui->cityLab->setText(mToday.city);
+    iconStr = "image: url(" + typeMap[mToday.type] + ");";
+    ui->todIcon->setStyleSheet(iconStr);
+    ui->dateLab->setText(QDateTime::fromString(mToday.date, "yyyyMMdd").toString("yyyy/MM/dd") + " " + mForecast[1].week);
+    ui->wenduLab->setText(QString::number(mToday.wendu) + "°");
+    ui->mainTypeLab->setText(mToday.type + " " + QString::number(mToday.low) + "°~" + QString::number(mToday.high) + "°");
+    ui->windLab->setText(mToday.fx + ":" + mToday.fl);
+    ui->pmLab->setText("  PM2.5:" + QString::number(mToday.pm25) + "  ");
+    ui->shiLab->setText("湿度:" + mToday.shidu);
+    ui->qualLab->setText("空气质量:" + mToday.quality);
+    ui->ganLab->setText("建议:" + mToday.ganmao);
+
+    //更新forecast
+    ui->weekLab0->setText("昨天\n" + mForecast[0].date.right(5));
+    ui->weekLab1->setText("今天\n" + mForecast[1].date.right(5));
+    ui->weekLab2->setText("明天\n" + mForecast[2].date.right(5));
+    for(int i = 0; i < 7; i++){
+        if(i > 2) weekList[i]->setText("周" + mForecast[i].week.right(1) + "\n" + mForecast[i].date.right(5));
+        typeList[i]->setText(mForecast[i].type);
+        iconStr = "image: url(" + typeMap[mForecast[i].type] + ");";
+        typeIconList[i]->setStyleSheet(iconStr + "\nbackground-color: rgba(0, 0, 0, 0);");
+    }
+    this->setCursor(Qt::ArrowCursor);
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    on_searchBtn_clicked();
+}
+
+//查询按钮
+void MainWindow::on_searchBtn_clicked()
+{
+    QString seaCity = ui->cityEdit->text();
+    if(ui->cityEdit->text().isEmpty()) return;
+    getWeatherInfo(WeatherTools::getCityCode(seaCity));
+}

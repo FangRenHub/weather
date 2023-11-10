@@ -62,5 +62,6 @@
         <file>type2/xing.png</file>
         <file>type2/xue.png</file>
         <file>type2/zhongyu.png</file>
+        <file>citycode.json</file>
     </qresource>
 </RCC>
