@@ -1,6 +1,11 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#define INCREMENT 2 //温度曲线每一°的像素擦
+#define POINT_RADIUS 2 //温度曲线描点大小
+#define TEXT_OFFSET_X 12
+#define TEXT_OFFSET_Y 4
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -25,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     //右键菜单退出
     connect(exitAct, &QAction::triggered, [=](){
        qDebug() << "exit";
-       qApp->exit();
+       this->close();
     });
 
     //把label装入数组
@@ -73,7 +78,11 @@ MainWindow::MainWindow(QWidget *parent)
     myNetAccessManager = new QNetworkAccessManager(this);
     connect(myNetAccessManager, &QNetworkAccessManager::finished, this, &MainWindow::onReplied);
     //getWeatherInfo("101010100"); //101010100北京编码
-    getWeatherInfo(WeatherTools::getCityCode("三亚"));
+    getWeatherInfo(WeatherTools::getCityCode("三亚")); //默认
+
+    //给标签添加事件过滤器
+    ui->highCurveLab->installEventFilter(this);
+    ui->lowCurveLab->installEventFilter(this);
 }
 
 MainWindow::~MainWindow()
@@ -116,7 +125,9 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
-    this->move(event->globalPos() - mOffset);
+    if(event->buttons() & Qt::LeftButton){
+        this->move(event->globalPos() - mOffset);
+    }
 }
 
 void MainWindow::getWeatherInfo(QString cityCode)
@@ -204,7 +215,11 @@ void MainWindow::parseJson(QByteArray &jsonByteArray)
     mToday.fl = mForecast[1].fl;
     mToday.high = mForecast[1].high;
     mToday.low = mForecast[1].low;
+
+    //更新ui
     updateUi();
+    ui->highCurveLab->update();
+    ui->lowCurveLab->update();
 }
 
 void MainWindow::updateUi()
@@ -217,7 +232,7 @@ void MainWindow::updateUi()
     ui->wenduLab->setText(QString::number(mToday.wendu) + "°");
     ui->mainTypeLab->setText(mToday.type + " " + QString::number(mToday.low) + "°~" + QString::number(mToday.high) + "°");
     ui->windLab->setText(mToday.fx + ":" + mToday.fl);
-    ui->pmLab->setText("  PM2.5:" + QString::number(mToday.pm25) + "  ");
+    ui->pmLab->setText("  PM2.5: " + QString::number(mToday.pm25) + "   ");
     ui->shiLab->setText("湿度:" + mToday.shidu);
     ui->qualLab->setText("空气质量:" + mToday.quality);
     ui->ganLab->setText("建议:" + mToday.ganmao);
@@ -237,7 +252,129 @@ void MainWindow::updateUi()
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    on_searchBtn_clicked();
+    if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter){
+        on_searchBtn_clicked();
+    }
+    QMainWindow::keyPressEvent(event);
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if(watched == ui->highCurveLab && event->type() == QEvent::Paint){
+        paintHighCurve();
+    }
+    if(watched == ui->lowCurveLab && event->type() == QEvent::Paint){
+        paintLowCurve();
+    }
+
+    return QMainWindow::eventFilter(watched, event);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    int res = QMessageBox::question(this,"询问","确定关闭吗?",QMessageBox::StandardButton::Yes,QMessageBox::StandardButton::No);
+    if(res == QMessageBox::StandardButton::Yes){
+        event->accept();
+    }
+    else{
+        event->ignore();
+    }
+}
+
+void MainWindow::paintHighCurve()
+{
+    QPainter painter(ui->highCurveLab);
+    //抗锯齿
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    //x和y坐标
+    int xPoint[7];
+    for(int i = 0; i < 7; i++){
+        xPoint[i] = weekList[i]->pos().x() + weekList[i]->width()/4;
+    }
+    int tmpSum = 0;
+    for(int i = 0; i < 7; i++){
+        tmpSum += mForecast[i].high;
+    }
+    int tmpAverage = tmpSum/7; //最高平均气温
+    int yPoint[7];
+    int yCenter = ui->highCurveLab->height()/2;
+    for(int i = 0; i < 7; i++){
+        yPoint[i] = yCenter - ((mForecast[i].high - tmpAverage) * INCREMENT);
+    }
+
+    QPen pen = painter.pen();
+    pen.setWidth(1);
+    pen.setColor(QColor(230,130,20));
+    painter.setPen(pen);
+    painter.setBrush(QColor(230,130,20));
+
+    //画点
+    for(int i = 0; i < 7; i++){
+        painter.drawEllipse(QPoint(xPoint[i],yPoint[i]), POINT_RADIUS, POINT_RADIUS);
+        painter.drawText(xPoint[i] - TEXT_OFFSET_X,yPoint[i]  - TEXT_OFFSET_Y, QString::number(mForecast[i].high) + "°");
+    }
+
+    //画线
+    for(int i = 0; i < 6; i++){
+        if(i == 0){
+            pen.setStyle(Qt::DotLine);
+            painter.setPen(pen);
+        }
+        else{
+            pen.setStyle(Qt::SolidLine);
+            painter.setPen(pen);
+        }
+        painter.drawLine(xPoint[i],yPoint[i],xPoint[i + 1],yPoint[i + 1]);
+    }
+}
+
+void MainWindow::paintLowCurve()
+{
+    QPainter painter(ui->lowCurveLab);
+    //抗锯齿
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    //x和y坐标
+    int xPoint[7];
+    for(int i = 0; i < 7; i++){
+        xPoint[i] = weekList[i]->pos().x() + weekList[i]->width()/4;
+    }
+    int tmpSum = 0;
+    for(int i = 0; i < 7; i++){
+        tmpSum += mForecast[i].low;
+    }
+    int tmpAverage = tmpSum/7; //最低平均气温
+    int yPoint[7];
+    int yCenter = ui->lowCurveLab->height()/2;
+    for(int i = 0; i < 7; i++){
+        yPoint[i] = yCenter - ((mForecast[i].low - tmpAverage) * INCREMENT);
+    }
+
+    QPen pen = painter.pen();
+    pen.setWidth(1);
+    pen.setColor(QColor(0,120,255));
+    painter.setPen(pen);
+    painter.setBrush(QColor(0,120,255));
+
+    //画点
+    for(int i = 0; i < 7; i++){
+        painter.drawEllipse(QPoint(xPoint[i],yPoint[i]), POINT_RADIUS, POINT_RADIUS);
+        painter.drawText(xPoint[i] - TEXT_OFFSET_X, yPoint[i]  - TEXT_OFFSET_Y, QString::number(mForecast[i].low) + "°");
+    }
+
+    //画线
+    for(int i = 0; i < 6; i++){
+        if(i == 0){
+            pen.setStyle(Qt::DotLine);
+            painter.setPen(pen);
+        }
+        else{
+            pen.setStyle(Qt::SolidLine);
+            painter.setPen(pen);
+        }
+        painter.drawLine(xPoint[i],yPoint[i],xPoint[i + 1],yPoint[i + 1]);
+    }
 }
 
 //查询按钮
@@ -246,4 +383,9 @@ void MainWindow::on_searchBtn_clicked()
     QString seaCity = ui->cityEdit->text();
     if(ui->cityEdit->text().isEmpty()) return;
     getWeatherInfo(WeatherTools::getCityCode(seaCity));
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    this->close();
 }
