@@ -15,6 +15,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonValue>
+#include <QPainter>
 
 #include "weatherdate.h"
 #include "weathertools.h"
@@ -51,6 +52,8 @@ private slots:
 
     void on_searchBtn_clicked();
 
+    void on_pushButton_clicked();
+
 protected:
     void contextMenuEvent(QContextMenuEvent *event);
 
@@ -66,6 +69,14 @@ protected:
     void updateUi();
 
     void keyPressEvent(QKeyEvent * event);
+
+    bool eventFilter(QObject *watched, QEvent *event);
+
+    void closeEvent(QCloseEvent *event);
+
+    //绘制高低温曲线
+    void paintHighCurve();
+    void paintLowCurve();
 
     Today mToday;
     Forecast mForecast[8];
